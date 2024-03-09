@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion-Based Music Recommendation</title>
+   <style>
+    body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+h1 {
+    color: #4A90E2;
+}
+
+h2 {
+    color: #7ED321;
+}
+
+textarea, input[type="file"] {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #357ABD;
+}
+
+#results {
+    margin-top: 30px;
+}
+
+#analysis-result, #music-recommendation {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+#music-recommendation {
+    background-color: #7ED321;
+    color: white;
+}
+/* Add this inside your <style> tag in the <head> section */
+    .loader {
+    border: 6px solid #f3f3f3; /* Light grey */
+    border-top: 6px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin: 40px auto; /* Center the loader */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+   </style>
+</head>
+<body>
+    <div id="loading" style="display: none;">
+        <div class="loader"></div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>Music Recommendation Based on Emotion</h1>
+        </header>
+        
+        <section id="sentiment-analysis">
+            <h2>Submit Text for Sentiment Analysis</h2>
+            <textarea id="text-input" placeholder="Enter text to analyze"></textarea>
+            <button onclick="analyzeText()">Analyze Text</button>
+        </section>
+        
+        
+        <section id="results">
+            
+            <div id="music-recommendation"></div>
+        </section>
+    </div>
+
+    <script>
+      
+
+
+  
+
+
+
+
+function analyzeText() {
+    const text = document.getElementById('text-input').value;
+    const sentimentApiUrl = 'https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/sentiment_analysis';
+
+    // Show loading indicator
+    document.getElementById('loading').style.display = 'block';
+
+    fetch(sentimentApiUrl, {
+        method: 'POST',
+        body: JSON.stringify({ text: text }),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const sentimentResult = JSON.parse(data.body);
+        getMusicRecommendation(sentimentResult); // Proceed to get music recommendation
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loading').style.display = 'none'; // Hide loading indicator on error
+    });
+}
+
+function getMusicRecommendation(emotion) {
+    const recommendationApiUrl = 'https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation';
+
+    fetch(recommendationApiUrl, {
+        method: 'POST',
+        body: JSON.stringify({ emotion: emotion }),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const recommendation = JSON.parse(data.body).recommendation;
+        const formattedRecommendation = recommendation.replace(/\n/g, '<br>');
+        document.getElementById('music-recommendation').innerHTML = `Recommended Songs: ${formattedRecommendation}`;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('music-recommendation').textContent = 'Error fetching music recommendation.';
+    })
+    .finally(() => {
+        document.getElementById('loading').style.display = 'none'; // Hide loading indicator when everything is done
+    });
+}
+
+
+
+
+
+
+
+
+
+
+    </script>
+</body>
+</html>

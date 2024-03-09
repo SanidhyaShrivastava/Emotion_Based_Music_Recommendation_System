@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emotion-based Music Recommender</title>
+</head>
+<body>
+    <h1>Upload your image</h1>
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="analyzeImage()">Analyze and Recommend Song</button>
+
+    <h2>Recommended Songs:</h2>
+    <pre id="songRecommendation"></pre>
+
+    <script>
+        function analyzeImage() {
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files.length) {
+                alert('Please select an image.');
+                return;
+            }
+
+            const imageFile = imageInput.files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function() {
+                // Call the API Gateway endpoint for emotion analysis
+                fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/emotion_analysis', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: reader.result.split('base64,')[1] }),
+                    headers: { 'Content-Type': 'application/json' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Extract the emotion from the response
+                    const responseBody = JSON.parse(data.body);
+                    const highConfidenceEmotions = responseBody.HighConfidenceEmotions;
+                    if (highConfidenceEmotions.length > 0) {
+                        const emotion = highConfidenceEmotions[0].Type;
+                        getSongRecommendation1(emotion.toLowerCase());
+                    } else {
+                        alert("No high-confidence emotions detected.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+
+            reader.readAsDataURL(imageFile);
+        }
+
+        function getSongRecommendation1(emotion) {
+            // Call the API Gateway endpoint for music recommendation
+            fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+                method: 'POST',
+                body: JSON.stringify({ emotion: emotion }),
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Extract and display the recommendation from the response
+                const recommendation = JSON.parse(data.body).recommendation;
+                document.getElementById('songRecommendation').textContent = recommendation;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

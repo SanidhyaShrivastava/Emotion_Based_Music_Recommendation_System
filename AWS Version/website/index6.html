@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Recommendation System</title>
+    <style>
+        /* Your existing CSS */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .column {
+            flex: 1;
+            margin: 10px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        header, h2, button, input[type="file"] {
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            color: #4A90E2;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #7ED321;
+            text-align: center;
+        }
+        button {
+            background-color: #4A90E2;
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #357ABD;
+        }
+        .results {
+            background-color: #7ED321;
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <header>  
+        <h1>Emotion-Based Music Recommendation</h1>
+    </header>
+    
+    <div class="container">
+        <div class="column" id="emotion-analysis">
+            <h2>Emotion Analysis</h2>
+            <input type="file" id="image-input" accept="image/*">
+            <button onclick="analyzeEmotion()">Analyze Emotion</button>
+            <div id="emotion-result" class="results"></div>
+            <div id="music-recommendation" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+//         function analyzeEmotion() {
+//     const imageInput = document.getElementById('image-input');
+//     if (!imageInput.files.length) {
+//         alert('Please select an image.');
+//         return;
+//     }
+
+//     const imageFile = imageInput.files[0];
+//     const reader = new FileReader();
+
+//     reader.onloadend = function() {
+//         const base64Image = reader.result.split(',')[1];
+//         if (!base64Image) {
+//             alert('Failed to encode the image.');
+//             return;
+//         }
+
+//         fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/emotion_analysis', {
+//             method: 'POST',
+//             body: JSON.stringify({ image: base64Image }),
+//             headers: { 'Content-Type': 'application/json' },
+//         })
+//         .then(response => {
+//             console.log("Raw response:", response);
+//             return response.json();
+//         })
+//         .then(data => {
+//             console.log("Parsed data:", data);
+//             const emotionData = JSON.parse(data.body);  // This line might be causing the issue
+//             const emotion = emotionData.detectedEmotion;
+//             document.getElementById('emotion-result').textContent = 'Detected Emotion: ' + emotion;
+//             getMusicRecommendation(emotion.toLowerCase());
+//         })
+//         .catch(error => {
+//             console.error('Error:', error);
+//         });
+//     };
+
+//     reader.readAsDataURL(imageFile);
+// }
+
+
+
+//         function getMusicRecommendation(emotion) {
+//             fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+//                 method: 'POST',
+//                 body: JSON.stringify({ emotion: emotion }),
+//                 headers: { 'Content-Type': 'application/json' },
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 const recommendationData = JSON.parse(data.body);
+//                 const recommendation = recommendationData.recommendation;
+//                 document.getElementById('music-recommendation').textContent = 'Recommended Songs: ' + recommendation;
+//             })
+//             .catch(error => {
+//                 console.error('Error:', error);
+//             });
+//         }
+function analyzeEmotion() {
+    const imageInput = document.getElementById('image-input');
+    if (!imageInput.files.length) {
+        alert('Please select an image.');
+        return;
+    }
+
+    const imageFile = imageInput.files[0];
+    const reader = new FileReader();
+
+    reader.onloadend = function() {
+        const base64Image = reader.result.split(',')[1];
+        if (!base64Image) {
+            alert('Failed to encode the image.');
+            return;
+        }
+
+        fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/emotion_analysis', {
+            method: 'POST',
+            body: JSON.stringify({ image: base64Image }),
+            headers: { 'Content-Type': 'application/json' },
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Parse the 'body' property to get the actual emotion data
+            const responseBody = JSON.parse(data.body);
+            const emotion = responseBody.emotion;
+            document.getElementById('emotion-result').textContent = 'Detected Emotion: ' + emotion;
+            // Ensure the emotion string is valid before converting to lower case and fetching music recommendations
+            if (emotion && typeof emotion === 'string') {
+                getMusicRecommendation1(emotion.toLowerCase());
+            } else {
+                console.error('Invalid emotion detected.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    };
+
+    reader.readAsDataURL(imageFile);
+}
+
+function getMusicRecommendation1(emotion) {
+    fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+        method: 'POST',
+        body: JSON.stringify({ emotion: emotion }),
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Parse the 'body' property to get the actual recommendation data
+        const recommendationData = JSON.parse(data.body);
+        const recommendation = recommendationData.recommendation;
+        // Replace newline characters with HTML line breaks for proper formatting
+        const formattedRecommendation = recommendation.replace(/\n/g, '<br>');
+        document.getElementById('music-recommendation').innerHTML = 'Recommended Songs: ' + formattedRecommendation;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('music-recommendation').textContent = 'Error fetching music recommendation.';
+    });
+}
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion & Sentiment Based Music Recommendation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #4A90E2;
+        }
+
+        h2 {
+            color: #7ED321;
+        }
+
+        .section {
+            flex-basis: 45%;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea, input[type="file"] {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #357ABD;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #7ED321;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Music Recommendation Based on Emotion and Sentiment</h1>
+        </header>
+        
+        <section class="section" id="sentiment-analysis">
+            <h2>Submit Text for Sentiment Analysis</h2>
+            <textarea id="text-input" placeholder="Enter text to analyze"></textarea>
+            <button onclick="analyzeText()">Analyze Text</button>
+            <div id="sentiment-music-recommendation" class="results"></div>
+        </section>
+        
+        <section class="section" id="emotion-analysis">
+            <h2>Upload Image for Emotion Analysis</h2>
+            <input type="file" id="image-input">
+            <button onclick="analyzeImage()">Analyze Image</button>
+            <div id="emotion-music-recommendation" class="results"></div>
+        </section>
+    </div>
+
+    <script>
+        function analyzeText() {
+            const text = document.getElementById('text-input').value;
+            const sentimentApiUrl = 'https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/sentiment_analysis';
+            fetch(sentimentApiUrl, {
+                method: 'POST',
+                body: JSON.stringify({ text: text }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const sentimentResult = JSON.parse(data.body);
+                const formattedRecommendation = sentimentResult.replace(/\n/g, '<br>');
+                document.getElementById('sentiment-music-recommendation').innerHTML = `Recommended Songs: ${formattedRecommendation}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('sentiment-music-recommendation').textContent = 'Error fetching music recommendation.';
+            });
+        }
+
+        function analyzeImage() {
+            const imageInput = document.getElementById('image-input');
+            if (!imageInput.files.length) {
+                alert('Please select an image.');
+                return;
+            }
+
+            const imageFile = imageInput.files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function() {
+                fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/emotion_analysis', {
+                    method: 'POST',
+                    body: JSON.stringify({ image: reader.result.split('base64,')[1] }),
+                    headers: { 'Content-Type': 'application/json' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const responseBody = JSON.parse(data.body);
+                    const highConfidenceEmotions = responseBody.HighConfidenceEmotions;
+                    if (highConfidenceEmotions.length > 0) {
+                        const emotion = highConfidenceEmotions[0].Type;
+                        getSongRecommendation(emotion.toLowerCase(), 'emotion');
+                    } else {
+                        alert("No high-confidence emotions detected.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            };
+
+            reader.readAsDataURL(imageFile);
+        }
+
+        function getSongRecommendation(emotion, type) {
+            fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+                method: 'POST',
+                body: JSON.stringify({ emotion: emotion }),
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const recommendation = JSON.parse(data.body).recommendation;
+                const formattedRecommendation = recommendation.replace(/\n/g, '<br>');
+                if (type === 'emotion') {
+                    document.getElementById('emotion-music-recommendation').innerHTML = `Recommended Songs: ${formattedRecommendation}`;
+                } else {
+                    document.getElementById('sentiment-music-recommendation').innerHTML = `Recommended Songs: ${formattedRecommendation}`;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

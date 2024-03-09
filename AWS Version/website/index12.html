@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion-Based Music Recommendation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+        .column {
+            margin: 10px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        header {
+            text-align: center;
+            color: #4A90E2;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #7ED321;
+        }
+        button {
+            background-color: #4A90E2;
+            color: white;
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #357ABD;
+        }
+        .results {
+            background-color: #7ED321;
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        video, canvas {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>  
+        <h1>Emotion-Based Music Recommendation</h1>
+    </header>
+    
+    <div class="container">
+        <div class="column" id="camera-column">
+            <h2>Camera Feed</h2>
+            <video id="video" width="640" height="480" autoplay></video>
+            <button id="startCamera">Start Camera</button>
+            <button id="stopCamera">Stop Camera</button>
+            <button id="capture">Capture Image</button>
+            <canvas id="canvas" width="640" height="480"></canvas>
+            <div id="emotion-result" class="results"></div>
+            <div id="music-recommendation" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let context = canvas.getContext('2d');
+        let localMediaStream = null;
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    localMediaStream = stream;
+                })
+                .catch(function(err) {
+                    console.log('An error occurred: ' + err);
+                });
+        }
+
+        function stopCamera() {
+            if (localMediaStream) {
+                localMediaStream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function captureImage() {
+            if (localMediaStream) {
+                context.drawImage(video, 0, 0, 640, 480);
+                sendImageToAPI();
+            }
+        }
+
+        function sendImageToAPI() {
+    let imageData = canvas.toDataURL('image/png');
+    let base64Image = imageData.split(',')[1];
+
+    fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/emotion_analysis', {
+        method: 'POST',
+        body: JSON.stringify({ image: base64Image }),
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Ensure data.body contains the expected data
+        if (data && data.body) {
+            // Assuming the API response is correctly formatted as JSON string
+            const emotionData = JSON.parse(data.body);
+            // Check if emotionData contains the 'emotion' field
+            if (emotionData && emotionData.emotion) {
+                const emotion = emotionData.emotion;
+                document.getElementById('emotion-result').textContent = 'Detected Emotion: ' + emotion;
+                getMusicRecommendation2(emotion.toLowerCase());
+            } else {
+                console.error('Emotion data is missing in the response');
+            }
+        } else {
+            console.error('Invalid response format');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function getMusicRecommendation2(emotion) {
+    // Ensure emotion is a valid string before proceeding
+    if (typeof emotion === 'string') {
+        fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+            method: 'POST',
+            body: JSON.stringify({ emotion: emotion }),
+            headers: { 'Content-Type': 'application/json' },
+        })
+        .then(response => response.json())
+        .then(data => {
+           // const recommendation = data.body.recommendation;
+            const recommendationData = JSON.parse(data.body);
+            document.getElementById('music-recommendation').textContent = 'Recommended Songs: ' + recommendationData.recommendation;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Invalid emotion type:', emotion);
+    }
+}
+
+
+        
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('stopCamera').addEventListener('click', stopCamera);
+        document.getElementById('capture').addEventListener('click', captureImage);
+    </script>
+</body>
+</html>

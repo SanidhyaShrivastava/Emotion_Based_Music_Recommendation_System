@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Recommendation System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .column {
+            flex: 1;
+            margin: 10px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        header, h2, button, textarea, input[type="file"] {
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            color: #4A90E2;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #7ED321;
+            text-align: center;
+        }
+        button {
+            background-color: #4A90E2;
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #357ABD;
+        }
+        textarea, input[type="file"] {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .results {
+            background-color: #7ED321;
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .loader {
+            display: none;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            position: fixed; /* Keep the loader in the same position on the screen */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader" id="loader"></div>
+    <header>  
+        <h1>Emotion & Sentiment-Based Music Recommendation</h1>
+    </header>
+    
+    <div class="container">
+        <div class="column" id="sentiment-analysis">
+            <h2>Sentiment Analysis</h2>
+            <textarea id="text-input" placeholder="Enter text to analyze"></textarea>
+            <button onclick="analyzeText()">Analyze Text</button>
+            <div id="sentiment-recommendation" class="results"></div>
+        </div>
+        
+    </div>
+
+    <script>
+        function analyzeText() {
+            document.getElementById('loader').style.display = 'block';
+            const text = document.getElementById('text-input').value;
+            const sentimentApiUrl = 'https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/sentiment_analysis';
+
+            fetch(sentimentApiUrl, {
+                method: 'POST',
+                body: JSON.stringify({ text: text }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const sentimentResult = JSON.parse(data.body);
+                getMusicRecommendation(sentimentResult, 'sentiment-recommendation');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('sentiment-recommendation').textContent = 'Error fetching music recommendation.';
+            });
+        }
+
+        
+        function getMusicRecommendation(emotion, resultElementId) {
+            fetch('https://4zg9pdd6qj.execute-api.us-east-1.amazonaws.com/prod/music_recommendation', {
+                method: 'POST',
+                body: JSON.stringify({ emotion: emotion }),
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const recommendation = JSON.parse(data.body).recommendation;
+                document.getElementById(resultElementId).textContent = recommendation;
+                document.getElementById('loader').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById(resultElementId).textContent = 'Error fetching music recommendation.';
+                document.getElementById('loader').style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>
